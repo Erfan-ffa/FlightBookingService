@@ -1,4 +1,3 @@
-using Application.Features.Flights.Models;
 using Application.Utils;
 using Domain.Entities;
 using MediatR;
@@ -12,14 +11,4 @@ public class GetFlightsQuery : IRequest<ApiResponse<GetFlightsResponse>>
     public DateOnly DepartureDate { get; set; }
     public DateOnly? ArrivalDate { get; set; }
     public int? AvailableSeats { get; set; }
-}
-
-public class GetFlightsResponse
-{
-    public List<FlightDto> FlightItems { get; set; }
-
-    public GetFlightsResponse(List<FlightDto> flightItems)
-    {
-        FlightItems =  flightItems;
-    }
 }

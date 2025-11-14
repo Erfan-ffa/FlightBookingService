@@ -12,6 +12,10 @@ public class Flight : AuditableEntity
     public int AvailableSeats { get; set; }
     public decimal Price { get; set; }
 
+    
+    private readonly List<Booking> _bookings = new();
+    public IReadOnlyCollection<Booking> Bookings => _bookings.AsReadOnly();
+    
     private Flight()
     {
     }
