@@ -12,7 +12,7 @@ public class FlightController(IMediator mediator) : ControllerBase
 {
     
     [HttpPost]
-    [Idempotent]
+    // [Idempotent]
     public async Task<IActionResult> Create([FromBody] CreateFlightRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(request, cancellationToken);
