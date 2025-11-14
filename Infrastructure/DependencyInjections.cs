@@ -9,7 +9,12 @@ public static class DependencyInjections
 {
     public static void RegisterInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<AppDbContext>(x => 
-            x.UseInMemoryDatabase(configuration["DatabaseName"]!));
+        services.AddSingleton<AuditInterceptor>();
+        services.AddDbContext<AppDbContext>((sp, options) =>
+            {
+                options.UseInMemoryDatabase(configuration["DatabaseName"]!)
+                    .AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
+            }
+        );
     }
 }

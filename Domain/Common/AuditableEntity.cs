@@ -1,6 +1,10 @@
 namespace Domain.Common;
 
-public abstract class AuditableEntity<TKey>
+public interface IEntity
+{
+}
+
+public abstract class AuditableEntity<TKey> : IEntity
 {
     public TKey Id { get; protected set; }
     public DateTime CreatedAt { get; set; }
