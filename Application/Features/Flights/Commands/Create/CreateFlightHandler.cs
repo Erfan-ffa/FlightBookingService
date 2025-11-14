@@ -3,10 +3,11 @@ using Application.Contracts.Repositories;
 using Application.Utils;
 using Domain.Entities;
 using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.Flights.Commands.Create;
 
-public class CreateFlightHandler(IUnitOfWork uow)
+public class CreateFlightHandler(IUnitOfWork uow, IDistributedCache cache)
     : IRequestHandler<CreateFlightRequest, ApiResponse<CreateFlightResponse>>
 {
     public async Task<ApiResponse<CreateFlightResponse>> Handle(CreateFlightRequest request,
@@ -22,6 +23,8 @@ public class CreateFlightHandler(IUnitOfWork uow)
         uow.Flights.Add(flight);
         await uow.SaveChangesAsync(cancellationToken);
 
+        await CleanFlightsCache(request, cancellationToken);
+        
         var result = new CreateFlightResponse
         {
             Id = flight.Id
@@ -29,4 +32,12 @@ public class CreateFlightHandler(IUnitOfWork uow)
         
         return ApiResponse<CreateFlightResponse>.Ok(result);
     }
+
+    private async Task CleanFlightsCache(CreateFlightRequest request, CancellationToken cancellationToken)
+    {
+        await cache.RemoveAsync(GetCacheKey(request.Origin, request.Destination, request.DepartureTime), cancellationToken);
+    }
+
+    private string GetCacheKey(string origin, string destination, DateTime departureTime)
+        => string.Format(FlightKeys.AvailableKeyFormat, origin, destination, DateOnly.FromDateTime(departureTime));
 }
