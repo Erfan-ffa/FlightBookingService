@@ -4,6 +4,7 @@ using Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace Infrastructure;
 
@@ -13,10 +14,16 @@ public static class DependencyInjections
     {
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = configuration["Redis:Address"];
+            options.ConfigurationOptions = new ConfigurationOptions
+            {
+                EndPoints = { configuration["Redis:Address"]! },
+                ConnectRetry = 3,
+                ConnectTimeout = 5000,
+                AsyncTimeout = 5000
+            };
             options.InstanceName = configuration["Redis:AppName"];
         });
-
+        
         services.AddScoped<AuditInterceptor>();
         services.AddDbContext<AppDbContext>((sp, options) =>
             {
