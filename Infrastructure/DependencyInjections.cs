@@ -1,4 +1,6 @@
+using Application.Contracts.Repositories;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,5 +23,8 @@ public static class DependencyInjections
                     .AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
             }
         );
+        
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IFlightRepository, IFlightRepository>();
     }
 }
