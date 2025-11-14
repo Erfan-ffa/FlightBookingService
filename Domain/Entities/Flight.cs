@@ -11,4 +11,23 @@ public class Flight : AuditableEntity
     public DateTime ArrivalTime { get; set; }
     public int AvailableSeats { get; set; }
     public decimal Price { get; set; }
+
+    private Flight()
+    {
+    }
+
+    public static Flight Create(string flightNumber, string origin, string destination, DateTime departureTime,
+        DateTime arrivalTime, int availableSeats, decimal price)
+    {
+        return new Flight
+        {
+            FlightNumber = flightNumber,
+            Origin = origin,
+            Destination = destination,
+            DepartureTime = departureTime,
+            ArrivalTime = arrivalTime,
+            AvailableSeats = availableSeats,
+            Price = price
+        };
+    }
 }

@@ -12,7 +12,7 @@
 
     <ItemGroup>
       <Folder Include="Features\Bookings\" />
-      <Folder Include="Features\Flights\" />
+      <Folder Include="Features\Flights\Queries\" />
     </ItemGroup>
 
     <ItemGroup>
