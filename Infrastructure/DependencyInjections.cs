@@ -32,7 +32,9 @@ public static class DependencyInjections
             }
         );
         
-        services.AddScoped<IFlightRepository, FlightRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IFlightRepository, FlightRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        
     }
 }
