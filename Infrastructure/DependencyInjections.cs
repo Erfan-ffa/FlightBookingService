@@ -16,7 +16,8 @@ public static class DependencyInjections
             options.Configuration = configuration["Redis:Address"];
             options.InstanceName = configuration["Redis:AppName"];
         });
-        
+
+        services.AddScoped<AuditInterceptor>();
         services.AddDbContext<AppDbContext>((sp, options) =>
             {
                 options.UseInMemoryDatabase(configuration["DatabaseName"]!)
@@ -24,7 +25,7 @@ public static class DependencyInjections
             }
         );
         
+        services.AddScoped<IFlightRepository, FlightRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IFlightRepository, IFlightRepository>();
     }
 }
