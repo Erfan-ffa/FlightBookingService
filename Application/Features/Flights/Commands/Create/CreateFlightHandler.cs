@@ -1,4 +1,5 @@
 using System.Net;
+using Application.ApiMessages;
 using Application.Contracts.Repositories;
 using Application.Utils;
 using Domain.Entities;
@@ -39,5 +40,5 @@ public class CreateFlightHandler(IUnitOfWork uow, IDistributedCache cache)
     }
 
     private string GetCacheKey(string origin, string destination, DateTime departureTime)
-        => string.Format(FlightKeys.AvailableKeyFormat, origin, destination, DateOnly.FromDateTime(departureTime));
+        => string.Format(CacheKeys.AvailableKeyFormat, origin, destination, DateOnly.FromDateTime(departureTime));
 }
