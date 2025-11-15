@@ -1,3 +1,4 @@
+using Application.Features.Bookings.Book;
 using Application.Features.Bookings.Query.ListByFlightId;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,13 @@ public class BookingController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Get(long flightId, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetBookingsByFlightIdRequest(flightId), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Book([FromBody] BookingRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 }
