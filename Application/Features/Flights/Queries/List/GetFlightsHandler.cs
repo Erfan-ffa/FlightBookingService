@@ -1,4 +1,5 @@
 using System.Xml;
+using Application.Contracts;
 using Application.Contracts.Repositories;
 using Application.Features.Flights.Models;
 using Application.Utils;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Flights.Queries.List;
 
-public class GetFlightsHandler(IUnitOfWork uow, IDistributedCache cache, ILogger<GetFlightsHandler> logger)
+public class GetFlightsHandler(IUnitOfWork uow, ICacheService cacheService, ILogger<GetFlightsHandler> logger)
     : IRequestHandler<GetFlightsQuery, ApiResponse<GetFlightsResponse>>
 {
     private static string FailureLogTemplate = "[GetFlightsFailure]-{}";
@@ -17,7 +18,7 @@ public class GetFlightsHandler(IUnitOfWork uow, IDistributedCache cache, ILogger
     public async Task<ApiResponse<GetFlightsResponse>> Handle(GetFlightsQuery request, CancellationToken cancellationToken)
     {
         var cacheKey = GetCacheKey(request);
-        var cachedFlights = await cache.GetAsync<List<FlightDto>>(cacheKey, token: cancellationToken);
+        var cachedFlights = await cacheService.GetAsync<List<FlightDto>>(cacheKey);
         if (cachedFlights is not null)
         {
             var response = ConvertToResponse(cachedFlights);
@@ -43,14 +44,13 @@ public class GetFlightsHandler(IUnitOfWork uow, IDistributedCache cache, ILogger
     private static GetFlightsResponse ConvertToResponse(List<FlightDto> cachedFlights) => new(cachedFlights);
 
     private string GetCacheKey(GetFlightsQuery request)
-        => string.Format(FlightKeys.AvailableKeyFormat, request.Origin, request.Destination, request.DepartureDate);
+        => string.Format(CacheKeys.AvailableKeyFormat, request.Origin, request.Destination, request.DepartureDate);
     
     private async Task CacheFlightsAsync(List<FlightDto> flights, string cacheKey, CancellationToken cancellationToken)
     {
         try
         {
-            var options = new DistributedCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromDays(5));
-            await cache.SetAsync(cacheKey, flights, token: cancellationToken, options: options);
+            await cacheService.SetAsync(cacheKey, flights, TimeSpan.FromDays(3));
         }
         catch (Exception e)
         {
