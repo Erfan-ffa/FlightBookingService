@@ -11,4 +11,19 @@ public class Booking : AuditableEntity
     
     public Flight Flight { get; set; }
     public Passenger Passenger { get; set; }
+
+    private Booking()
+    {
+    }
+
+    public static Booking Create(long flightId, long passengerId, int seatNumber)
+    {
+        return new Booking
+        {
+            FlightId = flightId,
+            PassengerId = passengerId,
+            SeatNumber = seatNumber,
+            BookingDate = DateTime.Now
+        };
+    }
 }
