@@ -29,7 +29,29 @@ public class FlightRepository(AppDbContext dbContext) : IFlightRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Flight?> GetByIdAsync(long id, CancellationToken cancellationToken)
+        => await dbContext.Flights.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
     public async Task<List<Flight>> GetAllAsync(Expression<Func<Flight, bool>> criteria,
         CancellationToken cancellationToken)
         => await dbContext.Flights.Where(criteria).ToListAsync(cancellationToken);
+
+    public async Task<int> DecreaseAvailableSeatsAsync(long flightId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Database.ExecuteSqlAsync(
+            $"UPDATE Flights SET AvailableSeats = AvailableSeats - 1 WHERE Id = {flightId} AND AvailableSeats > 0",
+            cancellationToken);
+    }
+
+    public async Task<Flight?> GetWithLockAsync(long id, CancellationToken cancellationToken)
+    {
+        return await dbContext.Flights
+            .FromSqlInterpolated($@"
+                        SELECT *
+                        FROM Flights
+                        WHERE id = {id}
+                        FOR UPDATE NOWAIT
+            ")
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 }
