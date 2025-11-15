@@ -1,5 +1,7 @@
+using Application.Contracts;
 using Application.Contracts.Repositories;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.cache;
 using Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,17 +30,15 @@ public static class DependencyInjections
 
     private static void ConfigureRedis(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.ConfigurationOptions = new ConfigurationOptions
-            {
-                EndPoints = { configuration["Redis:Address"]! },
-                ConnectRetry = 3,
-                ConnectTimeout = 5000,
-                AsyncTimeout = 5000
-            };
-            options.InstanceName = configuration["Redis:AppName"];
-        });
+        services.AddSingleton<IConnectionMultiplexer>(x =>
+            ConnectionMultiplexer.Connect(configuration["Redis:Address"]!)
+        );
+        
+        services.AddScoped<IDatabase>(sp =>
+            sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase()
+        );
+        
+        services.AddScoped<ICacheService, CacheService>();
     }
 
     private static void ConfigureDb(IServiceCollection services, IConfiguration configuration)
@@ -46,7 +46,7 @@ public static class DependencyInjections
         services.AddScoped<AuditInterceptor>();
         services.AddDbContext<AppDbContext>((sp, options) =>
             {
-                options.UseInMemoryDatabase(configuration["DatabaseName"]!)
+                options.UseNpgsql(configuration.GetConnectionString("Postgres"))
                     .AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
             }
         );
