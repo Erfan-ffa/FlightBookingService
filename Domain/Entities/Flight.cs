@@ -34,4 +34,9 @@ public class Flight : AuditableEntity
             Price = price
         };
     }
+
+    public void DecreaseAvailableSeats()
+    {
+        AvailableSeats -= 1;
+    }
 }
