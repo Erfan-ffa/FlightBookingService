@@ -1,14 +1,14 @@
 using System.Net;
 using Application.ApiMessages;
+using Application.Contracts;
 using Application.Contracts.Repositories;
 using Application.Utils;
 using Domain.Entities;
 using MediatR;
-using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.Flights.Commands.Create;
 
-public class CreateFlightHandler(IUnitOfWork uow, IDistributedCache cache)
+public class CreateFlightHandler(IUnitOfWork uow, ICacheService cacheService)
     : IRequestHandler<CreateFlightRequest, ApiResponse<CreateFlightResponse>>
 {
     public async Task<ApiResponse<CreateFlightResponse>> Handle(CreateFlightRequest request,
@@ -24,7 +24,8 @@ public class CreateFlightHandler(IUnitOfWork uow, IDistributedCache cache)
         uow.Flights.Add(flight);
         await uow.SaveChangesAsync(cancellationToken);
 
-        await CleanFlightsCache(request, cancellationToken);
+        await CleanFlightsCache(request);
+        await AllocateSeatsForFlightAsync(flight.Id, flight.AvailableSeats);
         
         var result = new CreateFlightResponse
         {
@@ -34,11 +35,17 @@ public class CreateFlightHandler(IUnitOfWork uow, IDistributedCache cache)
         return ApiResponse<CreateFlightResponse>.Ok(result);
     }
 
-    private async Task CleanFlightsCache(CreateFlightRequest request, CancellationToken cancellationToken)
+    private async Task CleanFlightsCache(CreateFlightRequest request)
     {
-        await cache.RemoveAsync(GetCacheKey(request.Origin, request.Destination, request.DepartureTime), cancellationToken);
+        await cacheService.RemoveAsync(GetCacheKey(request.Origin, request.Destination, request.DepartureTime));
     }
 
     private string GetCacheKey(string origin, string destination, DateTime departureTime)
         => string.Format(CacheKeys.AvailableKeyFormat, origin, destination, DateOnly.FromDateTime(departureTime));
+
+    private async Task AllocateSeatsForFlightAsync(long flightId, int availableSeats)
+    {
+        var seats = Enumerable.Range(1, availableSeats).ToList();
+        await cacheService.BulkPushAsync(string.Format(CacheKeys.FlightSeatsKeyFormat, flightId), seats);
+    }
 }
