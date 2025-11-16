@@ -3,33 +3,31 @@ using Application.Features.Flights.Commands.Update;
 using Application.Features.Flights.Queries.List;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Utils;
 
 namespace WebApi.Controllers;
 
-[ApiController]
-[Route("[action]/[controller]")]
-public class FlightController(IMediator mediator) : ControllerBase
+public class FlightController(IMediator mediator) : BaseController
 {
     
     [HttpPost]
-    // [Idempotent]
     public async Task<IActionResult> Create([FromBody] CreateFlightRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(request, cancellationToken);
-        return Ok(result);
+        return ToApiResult(result);
     }
 
     [HttpPost]
     public async Task<IActionResult> Get([FromBody] GetFlightsQuery getFlightsQuery, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(getFlightsQuery, cancellationToken);
-        return Ok(result);
+        return ToApiResult(result);
     }
 
     [HttpPatch("Available-Seats")]
     public async Task<IActionResult> UpdateAvailableSeats([FromBody] UpdateAvailableSeatsRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(request, cancellationToken);
-        return Ok(result);
+        return ToApiResult(result);
     }
 }
