@@ -11,14 +11,14 @@ using RedLockNet;
 
 namespace Application.Features.Bookings.Book;
 
-public class BookingHandler : IRequestHandler<BookingRequest, ApiResponse<BookingResponse>>
+public class CreateBookingHandler : IRequestHandler<CreateBookingRequest, ApiResponse<CreateBookingResponse>>
 {
     private readonly IUnitOfWork _uow;
     private readonly ICacheService _cacheService;
     private readonly IDistributedLockFactory _redLock;
-    private readonly ILogger<BookingHandler> _logger;
+    private readonly ILogger<CreateBookingHandler> _logger;
 
-    public BookingHandler(IUnitOfWork uow, ICacheService cacheService, IDistributedLockFactory redLock, ILogger<BookingHandler> logger)
+    public CreateBookingHandler(IUnitOfWork uow, ICacheService cacheService, IDistributedLockFactory redLock, ILogger<CreateBookingHandler> logger)
     {
         _uow = uow;
         _cacheService = cacheService;
@@ -26,11 +26,11 @@ public class BookingHandler : IRequestHandler<BookingRequest, ApiResponse<Bookin
         _logger = logger;
     }
 
-    public async Task<ApiResponse<BookingResponse>> Handle(BookingRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<CreateBookingResponse>> Handle(CreateBookingRequest request, CancellationToken cancellationToken)
     {
         var flight = await _uow.Flights.GetByIdAsync(request.FlightId, cancellationToken);
         if(flight is null)
-            return ApiResponse<BookingResponse>.BadRequest(FlightMessages.NotFound);
+            return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.NotFound);
         
         var passengerId = GetFromToken();
         var seatId = await _cacheService.PopAsync<int?>(string.Format(CacheKeys.FlightSeatsKeyFormat, flight.Id));
@@ -38,7 +38,7 @@ public class BookingHandler : IRequestHandler<BookingRequest, ApiResponse<Bookin
         if (seatId is null)
         {
             if(flight.AvailableSeats <= 0)
-                return ApiResponse<BookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
+                return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
             
             var isRedisHealthy = await _cacheService.PingAsync() is not null;
             if (isRedisHealthy)
@@ -49,7 +49,7 @@ public class BookingHandler : IRequestHandler<BookingRequest, ApiResponse<Bookin
         }
         
         if(NoAvailableSeatExists(seatId.Value))
-            return ApiResponse<BookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
+            return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
             
         var booking = Booking.Create(request.FlightId, passengerId, seatId.Value);
         
@@ -57,22 +57,22 @@ public class BookingHandler : IRequestHandler<BookingRequest, ApiResponse<Bookin
         _uow.Bookings.Add(booking);
         await _uow.SaveChangesAsync(cancellationToken);
         
-        return ApiResponse<BookingResponse>.Ok(new BookingResponse(booking.Id));
+        return ApiResponse<CreateBookingResponse>.Ok(new CreateBookingResponse(booking.Id));
     }
 
-    private async Task<ApiResponse<BookingResponse>> BookUsingDatabaseLockAsync(BookingRequest request, CancellationToken cancellationToken)
+    private async Task<ApiResponse<CreateBookingResponse>> BookUsingDatabaseLockAsync(CreateBookingRequest request, CancellationToken cancellationToken)
     {
         var flight = await _uow.Flights.GetWithLockAsync(request.FlightId, cancellationToken);
         flight!.DecreaseAvailableSeats();
         var seatId = await GetFreeSeatIdAsync(request.FlightId, cancellationToken);
         if (seatId == 0)
-            return ApiResponse<BookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
+            return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
         
         var booking = Booking.Create(request.FlightId, GetFromToken(), seatId);
         _uow.Bookings.Add(booking);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<BookingResponse>.Ok(new BookingResponse(booking.Id));
+        return ApiResponse<CreateBookingResponse>.Ok(new CreateBookingResponse(booking.Id));
     }
 
     private async Task RebuildStateInBackground(long flightId, CancellationToken cancellationToken)

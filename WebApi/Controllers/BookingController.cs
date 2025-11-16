@@ -17,7 +17,7 @@ public class BookingController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Book([FromBody] BookingRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Book([FromBody] CreateBookingRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(request, cancellationToken);
         return Ok(result);
