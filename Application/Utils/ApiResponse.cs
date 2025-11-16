@@ -1,12 +1,18 @@
 using System.Net;
+using System.Text.Json.Serialization;
 
 namespace Application.Utils;
 
-public class ApiResponse<T>
+public class BaseApiResponse
 {
-    public T Data { get; set; }
+    [JsonIgnore]
     public HttpStatusCode StatusCode { get; set; }
     public string Message { get; set; }
+}
+
+public class ApiResponse<T> : BaseApiResponse
+{
+    public T Data { get; set; }
 
     public static ApiResponse<T> Ok(T data)
     {
@@ -24,11 +30,8 @@ public class ApiResponse<T>
     }
 }
 
-public class ApiResponse
+public class ApiResponse : BaseApiResponse
 {
-    public HttpStatusCode StatusCode { get; set; }
-    public string Message { get; set; }
-
     public static ApiResponse Ok()
     {
         return new ApiResponse{StatusCode = HttpStatusCode.OK };
