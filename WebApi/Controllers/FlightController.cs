@@ -3,7 +3,6 @@ using Application.Features.Flights.Commands.Update;
 using Application.Features.Flights.Queries.List;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using WebApi.Filters;
 
 namespace WebApi.Controllers;
 
