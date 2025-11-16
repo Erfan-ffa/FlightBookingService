@@ -39,4 +39,9 @@ public class Flight : AuditableEntity
     {
         AvailableSeats -= 1;
     }
+
+    public void UpdateAvailableSeats(int availableSeats)
+    {
+        AvailableSeats = availableSeats;
+    }
 }

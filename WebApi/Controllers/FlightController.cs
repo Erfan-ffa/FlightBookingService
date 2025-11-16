@@ -1,4 +1,5 @@
 using Application.Features.Flights.Commands.Create;
+using Application.Features.Flights.Commands.Update;
 using Application.Features.Flights.Queries.List;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,13 @@ public class FlightController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Get([FromBody] GetFlightsQuery getFlightsQuery, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(getFlightsQuery, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPatch("Available-Seats")]
+    public async Task<IActionResult> UpdateAvailableSeats([FromBody] UpdateAvailableSeatsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 }
