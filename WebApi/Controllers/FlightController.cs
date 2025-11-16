@@ -17,8 +17,8 @@ public class FlightController(IMediator mediator) : BaseController
         return ToApiResult(result);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Get([FromBody] GetFlightsQuery getFlightsQuery, CancellationToken cancellationToken)
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] GetFlightsQuery getFlightsQuery, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(getFlightsQuery, cancellationToken);
         return ToApiResult(result);
