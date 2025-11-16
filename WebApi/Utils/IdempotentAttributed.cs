@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace WebApi.Filters;
+namespace WebApi.Utils;
 
 
 [AttributeUsage(AttributeTargets.Method)]
