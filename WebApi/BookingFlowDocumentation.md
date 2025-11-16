@@ -8,7 +8,7 @@ This flight booking system implements a high-performance, cache-first seat assig
 
 ### Core Design Principle
 
-**Cache-First Seat Pre-Allocation**: Seats are pre-allocated and stored in Redis when a flight is created. During booking, seat IDs are atomically popped from Redis, eliminating the need for database locks and dramatically improving throughput under high concurrency.
+**Cache-First Seat Pre-Allocation**: Seats are pre-allocated and stored in Redis when a flight is created. During booking, seat IDs are atomically popped from Redis, eliminating the need for database locks and improving throughput under high concurrency.
 
 ### Components
 
