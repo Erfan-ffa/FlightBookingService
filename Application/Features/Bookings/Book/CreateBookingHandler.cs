@@ -33,31 +33,36 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingRequest, ApiRes
             return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.NotFound);
         
         var passengerId = GetFromToken();
-        var seatId = await _cacheService.PopAsync<int?>(string.Format(CacheKeys.FlightSeatsKeyFormat, flight.Id));
+        var seatResponse = await _cacheService.PopAsync<int?>(string.Format(CacheKeys.FlightSeatsKeyFormat, flight.Id));
         
-        if (seatId is null)
-        {
-            if(flight.AvailableSeats <= 0)
-                return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
-            
-            var isRedisHealthy = await _cacheService.PingAsync() is not null;
-            if (isRedisHealthy)
-                await RebuildStateInBackground(request.FlightId, cancellationToken);
-            
-            var bookingResult = await BookUsingDatabaseLockAsync(request, cancellationToken);
-            return bookingResult;
-        }
-        
-        if(NoAvailableSeatExists(seatId.Value))
+        if (CouldNotAcquireSeat(seatResponse))
+            return await BookUsingFallbackMechanismAsync(request, flight, cancellationToken);
+
+        var seatId = seatResponse!.Value;
+        if(NoAvailableSeatExists(seatId))
             return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
             
-        var booking = Booking.Create(request.FlightId, passengerId, seatId.Value);
-        
-        await _uow.Flights.DecreaseAvailableSeatsAsync(flight.Id, cancellationToken);
-        _uow.Bookings.Add(booking);
-        await _uow.SaveChangesAsync(cancellationToken);
-        
+        var booking = await CreateBookingAsync(request, cancellationToken, passengerId, seatId, flight);
+
         return ApiResponse<CreateBookingResponse>.Ok(new CreateBookingResponse(booking.Id));
+    }
+    
+    private static bool CouldNotAcquireSeat(int? seatId) => seatId is null;
+    
+    private async Task<ApiResponse<CreateBookingResponse>> BookUsingFallbackMechanismAsync(CreateBookingRequest request,
+        Flight flight,
+        CancellationToken cancellationToken)
+    {
+        if(flight.AvailableSeats <= 0)
+            return ApiResponse<CreateBookingResponse>.BadRequest(FlightMessages.SeatsNotAvailable);
+            
+        var isRedisHealthy = await _cacheService.PingAsync() is not null;
+        if (isRedisHealthy)
+            await RebuildStateInBackground(request.FlightId, cancellationToken);
+            
+        var bookingResult = await BookUsingDatabaseLockAsync(request, cancellationToken);
+        await ClearFlightCacheAsync(flight);
+        return bookingResult;
     }
 
     private async Task<ApiResponse<CreateBookingResponse>> BookUsingDatabaseLockAsync(CreateBookingRequest request, CancellationToken cancellationToken)
@@ -75,6 +80,19 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingRequest, ApiRes
         return ApiResponse<CreateBookingResponse>.Ok(new CreateBookingResponse(booking.Id));
     }
 
+    private async Task<Booking> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken,
+        int passengerId, int seatId, Flight flight)
+    {
+        var booking = Booking.Create(request.FlightId, passengerId, seatId);
+        
+        await _uow.Flights.DecreaseAvailableSeatsAsync(flight.Id, cancellationToken);
+        _uow.Bookings.Add(booking);
+        await _uow.SaveChangesAsync(cancellationToken);
+        await ClearFlightCacheAsync(flight);
+        return booking;
+    }
+
+    
     private async Task RebuildStateInBackground(long flightId, CancellationToken cancellationToken)
     {
         var key = string.Format(CacheKeys.BookingLockKeyFormat, flightId);
@@ -96,7 +114,7 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingRequest, ApiRes
             return;
 
         var freeSeatIds = await GetFreeSeatIdsAsync(flightId, cancellationToken);
-        await _cacheService.BulkPushAsync(string.Format(CacheKeys.FlightSeatsKeyFormat, flightId), freeSeatIds);
+        await _cacheService.BulkPushAsync(seatsCacheKey, freeSeatIds);
     }
 
     private async Task<int> GetFreeSeatIdAsync(long flightId, CancellationToken cancellationToken)
@@ -117,5 +135,11 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingRequest, ApiRes
 
     private static bool NoAvailableSeatExists(int seatId) => seatId == 0;
     private static int GetFromToken()
-        => new Random().Next(10, 100);
+        => 1;
+
+    private async Task ClearFlightCacheAsync(Flight flight)
+    {
+        var availableKey = string.Format(CacheKeys.AvailableKeyFormat, flight.Origin, flight.Destination, DateOnly.FromDateTime(flight.DepartureTime));
+        await _cacheService.RemoveAsync(availableKey);
+    }
 }
